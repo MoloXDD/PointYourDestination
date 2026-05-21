@@ -1,5 +1,6 @@
 package com.molox.pointyourdestination;
 
+import java.util.Random;
 import com.seibel.distanthorizons.api.DhApi;
 import com.seibel.distanthorizons.api.interfaces.data.IDhApiTerrainDataCache;
 import com.seibel.distanthorizons.api.interfaces.data.IDhApiTerrainDataRepo;
@@ -26,10 +27,11 @@ import xaero.common.minimap.waypoints.WaypointsManager;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+
 public class SpyglassWaypointHandler {
     private static boolean wasAttackDown = false;
-    private static int waypointCounter = 1;
     private static final AtomicBoolean dhRaycastPending = new AtomicBoolean(false);
+    private static final Random RANDOM = new Random();
 
     @SubscribeEvent
     public void onClientTick(ClientTickEvent.Post event) {
@@ -58,46 +60,28 @@ public class SpyglassWaypointHandler {
             int x = hit.getBlockPos().getX();
             int y = hit.getBlockPos().getY();
             int z = hit.getBlockPos().getZ();
-            PointYourDestination.LOGGER.debug("Vanilla raycast hit: {},{},{}", x, y, z);
             placeWaypoint(mc, player, eyePos, x, y, z);
             return;
         }
 
-        PointYourDestination.LOGGER.debug("Vanilla raycast miss, trying DH");
-
         IDhApiWorldProxy worldProxy = DhApi.Delayed.worldProxy;
         IDhApiTerrainDataRepo terrainRepo = DhApi.Delayed.terrainRepo;
 
-        PointYourDestination.LOGGER.debug("worldProxy={}, terrainRepo={}", worldProxy, terrainRepo);
-
-        if (worldProxy == null || terrainRepo == null) {
-            PointYourDestination.LOGGER.debug("DH not ready, showing invalid");
-            showInvalidMessage(mc);
-            return;
-        }
-
-        PointYourDestination.LOGGER.debug("worldProxy.worldLoaded()={}", worldProxy.worldLoaded());
-
-        if (!worldProxy.worldLoaded()) {
+        if (worldProxy == null || terrainRepo == null || !worldProxy.worldLoaded()) {
             showInvalidMessage(mc);
             return;
         }
 
         IDhApiLevelWrapper levelWrapper = worldProxy.getSinglePlayerLevel();
-        PointYourDestination.LOGGER.debug("getSinglePlayerLevel()={}", levelWrapper);
-
         if (levelWrapper == null) {
             String dimName = player.level().dimension().location().toString();
-            PointYourDestination.LOGGER.debug("Trying dimension match: {}", dimName);
             for (Object obj : worldProxy.getAllLoadedLevelsWithDimensionNameLike(dimName)) {
                 levelWrapper = (IDhApiLevelWrapper) obj;
-                PointYourDestination.LOGGER.debug("Found level via dimension: {}", levelWrapper);
                 break;
             }
         }
 
         if (levelWrapper == null) {
-            PointYourDestination.LOGGER.debug("No level found, showing invalid");
             showInvalidMessage(mc);
             return;
         }
@@ -117,14 +101,10 @@ public class SpyglassWaypointHandler {
                         1024,
                         cache
                 );
-                PointYourDestination.LOGGER.debug("DH raycast result: success={}, payload={}", result.success, result.payload);
                 mc.execute(() -> {
                     dhRaycastPending.set(false);
                     if (result.success && result.payload != null) {
                         DhApiRaycastResult raycastResult = (DhApiRaycastResult) result.payload;
-                        PointYourDestination.LOGGER.debug("DH raycast pos: {},{},{}, topY={}",
-                                raycastResult.pos.x, raycastResult.pos.y, raycastResult.pos.z,
-                                raycastResult.dataPoint.topYBlockPos);
                         placeWaypoint(mc, mc.player, finalEyePos,
                                 raycastResult.pos.x, raycastResult.dataPoint.topYBlockPos, raycastResult.pos.z);
                     } else {
@@ -144,31 +124,24 @@ public class SpyglassWaypointHandler {
     private static void placeWaypoint(Minecraft mc, LocalPlayer player, Vec3 eyePos,
                                       int targetX, int targetY, int targetZ) {
         XaeroMinimapSession session = XaeroMinimapSession.getCurrentSession();
-        if (session == null) {
-            PointYourDestination.LOGGER.debug("XaeroMinimapSession is null");
-            return;
-        }
+        if (session == null) return;
         WaypointsManager manager = session.getWaypointsManager();
-        if (manager == null) {
-            PointYourDestination.LOGGER.debug("WaypointsManager is null");
-            return;
-        }
+        if (manager == null) return;
         WaypointSet waypointSet = manager.getWaypoints();
-        if (waypointSet == null) {
-            PointYourDestination.LOGGER.debug("WaypointSet is null");
-            return;
-        }
+        if (waypointSet == null) return;
 
-        String waypointName = "目的地 " + waypointCounter;
-        int colorIndex = new java.util.Random().nextInt(16);
+        int nextIndex = findNextIndex(waypointSet);
+        String lang = Minecraft.getInstance().options.languageCode;
+        String waypointName = lang.startsWith("zh") ? ("目的地 " + nextIndex) : ("Destination " + nextIndex);
+
+        int colorIndex = RANDOM.nextInt(16);
         Waypoint waypoint = new Waypoint(targetX, targetY, targetZ, waypointName, "★", colorIndex, 3);
         waypoint.setVisibility(WaypointVisibilityType.GLOBAL);
         waypointSet.getList().add(waypoint);
-        waypointCounter++;
 
-        PointYourDestination.LOGGER.debug("Waypoint placed: {} at {},{},{}", waypointName, targetX, targetY, targetZ);
-
-        CrosshairAnimationRenderer.startAnimation();
+        if (Config.ANIMATION_ENABLED.get()) {
+            CrosshairAnimationRenderer.startAnimation();
+        }
 
         if (player == null || mc.level == null) return;
         Vec3 toTarget = new Vec3(targetX - eyePos.x, targetY - eyePos.y, targetZ - eyePos.z);
@@ -181,8 +154,30 @@ public class SpyglassWaypointHandler {
                 soundPos.x, soundPos.y, soundPos.z,
                 ModSounds.PIN.get(),
                 SoundSource.MASTER,
-                1.0f, 1.0f, false
+                (float) Config.SOUND_VOLUME.get().doubleValue(),
+                1.0f, false
         );
+    }
+
+    private static int findNextIndex(WaypointSet waypointSet) {
+        java.util.Set<Integer> usedIndices = new java.util.HashSet<>();
+        String enTemplate = "Destination %d";
+        String zhTemplate = "目的地 %d";
+        for (Object obj : waypointSet.getList()) {
+            Waypoint wp = (Waypoint) obj;
+            String name = wp.getName();
+            for (int i = 1; i <= waypointSet.getList().size() + 1; i++) {
+                if (name.equals(String.format(enTemplate, i)) || name.equals(String.format(zhTemplate, i))) {
+                    usedIndices.add(i);
+                    break;
+                }
+            }
+        }
+        int index = 1;
+        while (usedIndices.contains(index)) {
+            index++;
+        }
+        return index;
     }
 
     private static void showInvalidMessage(Minecraft mc) {

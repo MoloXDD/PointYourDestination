@@ -84,7 +84,6 @@ configurations {
 
 dependencies {
     implementation "curse.maven:distant-horizons-508933:8037637"
-    implementation "curse.maven:xaeros-world-map-317780:8042208"
     implementation "curse.maven:xaeros-minimap-263420:8046966"
 }
 

@@ -6,8 +6,13 @@ license="${mod_license}"
 modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
+authors="MoloX"
+logoFile = "logo.png"
 description='''
-MLX'S Mod
+可以让你用望远镜在地图上标记兴趣点，
+同时支持在Distant Horizons的远距离LOD区块标记兴趣点。
+Allows you to use a spyglass to mark locations on your map,
+and also supports marking waypoints within Distant Horizons' LOD chunks.
 '''
 
 [[dependencies.${mod_id}]]
@@ -28,13 +33,6 @@ side="BOTH"
 modId="distanthorizons"
 type="required"
 versionRange="[3.0.3,)"
-ordering="NONE"
-side="BOTH"
-
-[[dependencies.${mod_id}]]
-modId="xaeroworldmap"
-type="required"
-versionRange="[1.40.16,)"
 ordering="NONE"
 side="BOTH"
 
