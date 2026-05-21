@@ -1,0 +1,11 @@
+{
+  "pin": {
+    "subtitle": "subtitles.point_your_destination.pin",
+    "sounds": [
+      {
+        "name": "point_your_destination:pin",
+        "stream": false
+      }
+    ]
+  }
+}

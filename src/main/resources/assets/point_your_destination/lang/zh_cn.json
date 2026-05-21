@@ -1,0 +1,5 @@
+{
+  "subtitles.point_your_destination.pin": "已放置路径点",
+  "point_your_destination.waypoint.name": "目的地 %d",
+  "point_your_destination.message.invalid_location": "无效的标记地点"
+}
