@@ -18,7 +18,7 @@ and also supports marking waypoints within Distant Horizons' LOD chunks.
 [[dependencies.${mod_id}]]
 modId="neoforge"
 type="required"
-versionRange="[${neo_version},)"
+versionRange="*"
 ordering="NONE"
 side="BOTH"
 
@@ -32,13 +32,13 @@ side="BOTH"
 [[dependencies.${mod_id}]]
 modId="distanthorizons"
 type="required"
-versionRange="[3.0.3,)"
+versionRange="*"
 ordering="NONE"
 side="BOTH"
 
 [[dependencies.${mod_id}]]
 modId="xaerominimap"
 type="required"
-versionRange="[25.3.13,)"
+versionRange="*"
 ordering="NONE"
 side="BOTH"

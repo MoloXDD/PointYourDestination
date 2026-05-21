@@ -25,13 +25,16 @@ import xaero.common.minimap.waypoints.WaypointSet;
 import xaero.common.minimap.waypoints.WaypointVisibilityType;
 import xaero.common.minimap.waypoints.WaypointsManager;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-
 public class SpyglassWaypointHandler {
+    private static final int RAYCAST_DISTANCE = 65536;
     private static boolean wasAttackDown = false;
     private static final AtomicBoolean dhRaycastPending = new AtomicBoolean(false);
     private static final Random RANDOM = new Random();
+    private static IDhApiTerrainDataCache sharedCache = null;
 
     @SubscribeEvent
     public void onClientTick(ClientTickEvent.Post event) {
@@ -51,7 +54,7 @@ public class SpyglassWaypointHandler {
 
         Vec3 eyePos = player.getEyePosition();
         Vec3 lookVec = player.getLookAngle();
-        Vec3 farPos = eyePos.add(lookVec.scale(1024.0));
+        Vec3 farPos = eyePos.add(lookVec.scale(RAYCAST_DISTANCE));
         ClipContext ctx = new ClipContext(eyePos, farPos,
                 ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player);
         BlockHitResult hit = mc.level.clip(ctx);
@@ -86,19 +89,23 @@ public class SpyglassWaypointHandler {
             return;
         }
 
+        if (sharedCache == null) {
+            sharedCache = terrainRepo.createSoftCache();
+        }
+
         final IDhApiLevelWrapper finalLevelWrapper = levelWrapper;
         final Vec3 finalEyePos = eyePos;
         final Vec3 finalLookVec = lookVec;
+        final IDhApiTerrainDataCache cache = sharedCache;
         dhRaycastPending.set(true);
 
-        Thread.ofVirtual().start(() -> {
+        Thread.ofPlatform().daemon(true).name("pyd-dh-raycast").start(() -> {
             try {
-                IDhApiTerrainDataCache cache = terrainRepo.createSoftCache();
                 DhApiResult result = terrainRepo.raycast(
                         finalLevelWrapper,
                         finalEyePos.x, finalEyePos.y, finalEyePos.z,
                         (float) finalLookVec.x, (float) finalLookVec.y, (float) finalLookVec.z,
-                        1024,
+                        RAYCAST_DISTANCE,
                         cache
                 );
                 mc.execute(() -> {
@@ -160,23 +167,18 @@ public class SpyglassWaypointHandler {
     }
 
     private static int findNextIndex(WaypointSet waypointSet) {
-        java.util.Set<Integer> usedIndices = new java.util.HashSet<>();
-        String enTemplate = "Destination %d";
-        String zhTemplate = "目的地 %d";
+        Set<Integer> usedIndices = new HashSet<>();
         for (Object obj : waypointSet.getList()) {
-            Waypoint wp = (Waypoint) obj;
-            String name = wp.getName();
-            for (int i = 1; i <= waypointSet.getList().size() + 1; i++) {
-                if (name.equals(String.format(enTemplate, i)) || name.equals(String.format(zhTemplate, i))) {
-                    usedIndices.add(i);
-                    break;
-                }
-            }
+            String name = ((Waypoint) obj).getName();
+            String prefix = name.startsWith("Destination ") ? "Destination " :
+                    name.startsWith("目的地 ") ? "目的地 " : null;
+            if (prefix == null) continue;
+            try {
+                usedIndices.add(Integer.parseInt(name.substring(prefix.length())));
+            } catch (NumberFormatException ignored) {}
         }
         int index = 1;
-        while (usedIndices.contains(index)) {
-            index++;
-        }
+        while (usedIndices.contains(index)) index++;
         return index;
     }
 
