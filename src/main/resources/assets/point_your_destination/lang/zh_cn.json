@@ -5,5 +5,6 @@
   "key.categories.point_your_destination": "望远镜标记",
   "key.point_your_destination.mark_waypoint": "标记航点",
   "point_your_destination.zoom.level": "缩放：%.1f 倍",
-  "key.point_your_destination.auto_zoom": "自动缩放"
+  "key.point_your_destination.auto_zoom": "自动缩放",
+  "point_your_destination.message.entity_marked": "已标记生物"
 }

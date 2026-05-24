@@ -7,6 +7,7 @@ public class Config {
 
     public static final ModConfigSpec.DoubleValue SOUND_VOLUME;
     public static final ModConfigSpec.BooleanValue ANIMATION_ENABLED;
+    public static final ModConfigSpec.BooleanValue ENTITY_MARK_ENABLED;
     public static final ModConfigSpec.BooleanValue SCROLL_ZOOM_ENABLED;
     public static final ModConfigSpec.DoubleValue SCROLL_ZOOM_MIN;
     public static final ModConfigSpec.DoubleValue SCROLL_ZOOM_MAX;
@@ -32,7 +33,10 @@ public class Config {
         SCROLL_ZOOM_MAX = BUILDER
                 .comment("Maximum zoom multiplier. Must be >= scrollZoomMin")
                 .defineInRange("scrollZoomMax", 40.0, 1.0, 64.0);
-
+        BUILDER.comment("Entity Mark Settings");
+        ENTITY_MARK_ENABLED = BUILDER
+                .comment("Whether to enable entity marking (glowing effect) when marking a mob with the spyglass")
+                .define("entityMarkEnabled", true);
         SPEC = BUILDER.build();
     }
 
