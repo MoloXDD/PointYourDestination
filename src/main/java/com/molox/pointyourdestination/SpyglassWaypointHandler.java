@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SpyglassWaypointHandler {
     private static final int RAYCAST_DISTANCE = 65536;
-    private static boolean wasAttackDown = false;
+    private static boolean wasMarkKeyDown = false;
     private static final AtomicBoolean dhRaycastPending = new AtomicBoolean(false);
     private static final Random RANDOM = new Random();
     private static IDhApiTerrainDataCache sharedCache = null;
@@ -42,13 +42,13 @@ public class SpyglassWaypointHandler {
         LocalPlayer player = mc.player;
         if (player == null || mc.level == null) return;
         if (!player.isUsingItem() || !player.getUseItem().is(Items.SPYGLASS)) {
-            wasAttackDown = false;
+            wasMarkKeyDown = false;
             return;
         }
 
-        boolean isAttackDown = mc.options.keyAttack.isDown();
-        boolean triggered = isAttackDown && !wasAttackDown;
-        wasAttackDown = isAttackDown;
+        boolean isMarkKeyDown = ModKeybinds.MARK_WAYPOINT.isDown();
+        boolean triggered = isMarkKeyDown && !wasMarkKeyDown;
+        wasMarkKeyDown = isMarkKeyDown;
         if (!triggered) return;
         if (dhRaycastPending.get()) return;
 

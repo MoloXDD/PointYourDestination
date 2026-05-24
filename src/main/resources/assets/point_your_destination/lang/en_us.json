@@ -1,5 +1,9 @@
 {
   "subtitles.point_your_destination.pin": "Waypoint placed",
   "point_your_destination.waypoint.name": "Destination %d",
-  "point_your_destination.message.invalid_location": "Invalid marking location"
+  "point_your_destination.message.invalid_location": "Invalid marking location",
+  "key.categories.point_your_destination": "Point Your Destination",
+  "key.point_your_destination.mark_waypoint": "Mark Waypoint",
+  "point_your_destination.zoom.level": "Zoom: %.1fx",
+  "key.point_your_destination.auto_zoom": "Auto Zoom"
 }
