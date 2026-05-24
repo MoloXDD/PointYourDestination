@@ -1,6 +1,8 @@
 package com.molox.pointyourdestination;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.Items;
 
 public class CrosshairAnimationRenderer {
     private static final int DURATION_MS = 300;
@@ -15,25 +17,31 @@ public class CrosshairAnimationRenderer {
     }
 
     public static void render(GuiGraphics guiGraphics, net.minecraft.client.DeltaTracker deltaTracker) {
-        if (animationStartTime < 0) return;
-        long elapsed = System.currentTimeMillis() - animationStartTime;
-        if (elapsed > DURATION_MS) {
-            animationStartTime = -1;
-            return;
-        }
-
-        float tOuter = (float) elapsed / DURATION_MS;
-        float outerSize = (float) (MAX_OUTER * (1 - Math.cos(tOuter * Math.PI)) / 2);
-
-        float innerSize = 0f;
-        if (elapsed > DURATION_MS / 2) {
-            float tInner = (float) (elapsed - DURATION_MS / 2) / (DURATION_MS / 2);
-            innerSize = (float) (MAX_INNER * (1 - Math.cos(tInner * Math.PI)) / 2);
-        }
-
         int cx = guiGraphics.guiWidth() / 2;
         int cy = guiGraphics.guiHeight() / 2;
-        drawSquareRing(guiGraphics, cx, cy, innerSize, outerSize, COLOR);
+
+        if (animationStartTime >= 0) {
+            long elapsed = System.currentTimeMillis() - animationStartTime;
+            if (elapsed > DURATION_MS) {
+                animationStartTime = -1;
+            } else {
+                float tOuter = (float) elapsed / DURATION_MS;
+                float outerSize = (float) (MAX_OUTER * (1 - Math.cos(tOuter * Math.PI)) / 2);
+
+                float innerSize = 0f;
+                if (elapsed > DURATION_MS / 2) {
+                    float tInner = (float) (elapsed - DURATION_MS / 2) / (DURATION_MS / 2);
+                    innerSize = (float) (MAX_INNER * (1 - Math.cos(tInner * Math.PI)) / 2);
+                }
+
+                drawSquareRing(guiGraphics, cx, cy, innerSize, outerSize, COLOR);
+            }
+        }
+
+        if (Config.ENTITY_MARK_ENABLED.get() && EntityGlowTracker.getAimedEntity() != null) {
+            guiGraphics.fill(cx - 10, cy-1, cx - 7, cy, 0xFFFFFFFF);
+            guiGraphics.fill(cx + 6, cy-1, cx + 9, cy, 0xFFFFFFFF);
+        }
     }
 
     private static void drawSquareRing(GuiGraphics g, int cx, int cy,

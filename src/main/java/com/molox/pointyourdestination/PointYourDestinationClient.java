@@ -21,6 +21,7 @@ public class PointYourDestinationClient {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         NeoForge.EVENT_BUS.register(new SpyglassWaypointHandler());
         NeoForge.EVENT_BUS.register(new ScrollZoomHandler());
+        NeoForge.EVENT_BUS.register(new EntityGlowTracker());
     }
 
     @SubscribeEvent

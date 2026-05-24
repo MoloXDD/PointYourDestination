@@ -5,5 +5,6 @@
   "key.categories.point_your_destination": "Point Your Destination",
   "key.point_your_destination.mark_waypoint": "Mark Waypoint",
   "point_your_destination.zoom.level": "Zoom: %.1fx",
-  "key.point_your_destination.auto_zoom": "Auto Zoom"
+  "key.point_your_destination.auto_zoom": "Auto Zoom",
+  "point_your_destination.message.entity_marked": "Entity marked"
 }

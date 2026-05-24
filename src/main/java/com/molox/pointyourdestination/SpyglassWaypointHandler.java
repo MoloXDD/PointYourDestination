@@ -12,13 +12,18 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
 import xaero.common.XaeroMinimapSession;
 import xaero.common.minimap.waypoints.Waypoint;
 import xaero.common.minimap.waypoints.WaypointSet;
@@ -54,6 +59,30 @@ public class SpyglassWaypointHandler {
 
         Vec3 eyePos = player.getEyePosition();
         Vec3 lookVec = player.getLookAngle();
+
+        if (Config.ENTITY_MARK_ENABLED.get()) {
+            Vec3 farPos = eyePos.add(lookVec.scale(RAYCAST_DISTANCE));
+            AABB searchBox = player.getBoundingBox().expandTowards(lookVec.scale(RAYCAST_DISTANCE)).inflate(1.0);
+            EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
+                    player, eyePos, farPos, searchBox,
+                    e -> e != player && e instanceof LivingEntity && e.isAlive(),
+                    RAYCAST_DISTANCE * RAYCAST_DISTANCE
+            );
+            if (entityHit != null) {
+                Entity target = entityHit.getEntity();
+                if (EntityGlowTracker.isMarked(target.getId())) {
+                    EntityGlowTracker.unmarkEntity(target);
+                } else {
+                    EntityGlowTracker.markEntity(target);
+                    if (Config.ANIMATION_ENABLED.get()) {
+                        CrosshairAnimationRenderer.startAnimation();
+                    }
+                    playMarkSound(mc, player, eyePos, target.position());
+                }
+                return;
+            }
+        }
+
         Vec3 farPos = eyePos.add(lookVec.scale(RAYCAST_DISTANCE));
         ClipContext ctx = new ClipContext(eyePos, farPos,
                 ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player);
@@ -126,6 +155,23 @@ public class SpyglassWaypointHandler {
                 });
             }
         });
+    }
+
+    private static void playMarkSound(Minecraft mc, LocalPlayer player, Vec3 eyePos, Vec3 targetPos) {
+        if (mc.level == null) return;
+        Vec3 toTarget = targetPos.subtract(eyePos);
+        double actualDist = toTarget.length();
+        double SOUND_DISTANCE = 8.0;
+        Vec3 soundPos = actualDist <= SOUND_DISTANCE
+                ? targetPos
+                : eyePos.add(toTarget.normalize().scale(SOUND_DISTANCE));
+        mc.level.playLocalSound(
+                soundPos.x, soundPos.y, soundPos.z,
+                ModSounds.PIN.get(),
+                SoundSource.MASTER,
+                (float) Config.SOUND_VOLUME.get().doubleValue(),
+                1.0f, false
+        );
     }
 
     private static void placeWaypoint(Minecraft mc, LocalPlayer player, Vec3 eyePos,

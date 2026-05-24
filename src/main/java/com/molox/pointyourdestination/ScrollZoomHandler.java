@@ -14,7 +14,6 @@ import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
 
 public class ScrollZoomHandler {
-    // 目标方块占屏幕高度的比例，调大则方块显示更大（缩放更强）
     private static final double AUTO_ZOOM_BLOCK_SCREEN_FRACTION = 0.15;
 
     private static int zoomLevel = 10;
@@ -29,6 +28,11 @@ public class ScrollZoomHandler {
     private static double autoZoomTarget = 10.0;
     private static long autoZoomStartTime = -1;
     private static final long AUTO_ZOOM_ANIM_MS = 300;
+
+    private static boolean isClosingAnimation = false;
+    private static double closingStartSmooth = 1.0;
+    private static long closingStartTime = -1;
+    private static final long CLOSING_ANIM_MS = 200;
 
     @SubscribeEvent
     public void onMouseScroll(InputEvent.MouseScrollingEvent event) {
@@ -63,17 +67,45 @@ public class ScrollZoomHandler {
         if (player == null) return;
 
         boolean usingSpyglass = player.isUsingItem() && player.getUseItem().is(Items.SPYGLASS);
+        long now = System.currentTimeMillis();
 
         if (!usingSpyglass) {
-            lastRenderTime = -1;
+            if (wasUsingSpyglass) {
+                isClosingAnimation = true;
+                closingStartSmooth = Math.min(smoothZoomLevel, 10.0);
+                closingStartTime = now;
+            }
             wasUsingSpyglass = false;
             wasAutoZoomKeyDown = false;
             scrollLocked = false;
             autoZoomActive = false;
+            lastRenderTime = -1;
+
+            double baseFov = mc.options.fov().get().intValue();
+
+            if (isClosingAnimation) {
+                long elapsed = now - closingStartTime;
+                if (elapsed >= CLOSING_ANIM_MS || closingStartSmooth <= 1.01) {
+                    isClosingAnimation = false;
+                    smoothZoomLevel = 1.0;
+                    event.setFOV(baseFov);
+                } else {
+                    double t = (double) elapsed / CLOSING_ANIM_MS;
+                    double ease = (1 - Math.cos(t * Math.PI)) / 2.0;
+                    double logStart = Math.log(closingStartSmooth);
+                    smoothZoomLevel = Math.exp(logStart * (1.0 - ease));
+                    event.setFOV(baseFov / smoothZoomLevel);
+                }
+            } else {
+                if (event.getFOV() < baseFov * 0.99) {
+                    event.setFOV(baseFov);
+                }
+            }
             return;
         }
 
-        // 自动缩放键检测
+        isClosingAnimation = false;
+
         boolean isAutoZoomKeyDown = ModKeybinds.AUTO_ZOOM.isDown();
         if (isAutoZoomKeyDown && !wasAutoZoomKeyDown) {
             triggerAutoZoom(mc, player);
@@ -82,8 +114,6 @@ public class ScrollZoomHandler {
 
         int min = (int) Math.round(Config.SCROLL_ZOOM_MIN.get());
         int max = (int) Math.round(Config.SCROLL_ZOOM_MAX.get());
-
-        long now = System.currentTimeMillis();
 
         if (!wasUsingSpyglass) {
             smoothZoomLevel = 1.0;
@@ -108,7 +138,7 @@ public class ScrollZoomHandler {
         } else {
             zoomLevel = Mth.clamp(zoomLevel, min, max);
             double deltaSeconds = (now - lastRenderTime) / 1000.0;
-            double logSmooth = Math.log(smoothZoomLevel);
+            double logSmooth = Math.log(Math.max(smoothZoomLevel, 0.01));
             double logTarget = Math.log(zoomLevel);
             double factor = 1.0 - Math.pow(0.001, deltaSeconds);
             smoothZoomLevel = Math.exp(logSmooth + (logTarget - logSmooth) * factor);
@@ -150,11 +180,6 @@ public class ScrollZoomHandler {
         if (hit.getType() != HitResult.Type.MISS) {
             double distance = eyePos.distanceTo(Vec3.atCenterOf(hit.getBlockPos()));
             double baseFov = mc.options.fov().get().intValue();
-            double fovRad = Math.toRadians(baseFov);
-            // 距离为 distance 时，1格方块对应的视角：
-            // angularSize = 2 * atan(0.5 / distance)
-            // 目标FOV = angularSize / AUTO_ZOOM_BLOCK_SCREEN_FRACTION
-            // zoom = baseFov / targetFov
             double angularSizeDeg = Math.toDegrees(2.0 * Math.atan(0.5 / distance));
             double targetFov = angularSizeDeg / AUTO_ZOOM_BLOCK_SCREEN_FRACTION;
             targetZoom = baseFov / targetFov;
