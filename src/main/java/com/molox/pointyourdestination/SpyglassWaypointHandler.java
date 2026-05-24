@@ -69,9 +69,21 @@ public class SpyglassWaypointHandler {
                     RAYCAST_DISTANCE * RAYCAST_DISTANCE
             );
             if (entityHit != null) {
+                Vec3 entityPos = entityHit.getLocation();
+                ClipContext clipCtx = new ClipContext(eyePos, entityPos,
+                        ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player);
+                BlockHitResult blockHit = mc.level.clip(clipCtx);
+                if (blockHit.getType() != HitResult.Type.MISS) {
+                    entityHit = null;
+                }
+            }
+            if (entityHit != null) {
                 Entity target = entityHit.getEntity();
                 if (EntityGlowTracker.isMarked(target.getId())) {
                     EntityGlowTracker.unmarkEntity(target);
+                    if (Config.ANIMATION_ENABLED.get()) {
+                        CrosshairAnimationRenderer.startAnimation();
+                    }
                 } else {
                     EntityGlowTracker.markEntity(target);
                     if (Config.ANIMATION_ENABLED.get()) {

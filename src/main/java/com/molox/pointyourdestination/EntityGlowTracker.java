@@ -4,8 +4,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -69,6 +72,15 @@ public class EntityGlowTracker {
                     e -> e != mc.player && e instanceof LivingEntity && e.isAlive(),
                     1024.0 * 1024.0
             );
+            if (entityHit != null) {
+                Vec3 entityPos = entityHit.getLocation();
+                ClipContext clipCtx = new ClipContext(eyePos, entityPos,
+                        ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player);
+                BlockHitResult blockHit = mc.level.clip(clipCtx);
+                if (blockHit.getType() != HitResult.Type.MISS) {
+                    entityHit = null;
+                }
+            }
             aimedEntity = entityHit != null ? (LivingEntity) entityHit.getEntity() : null;
             previewEntityId = aimedEntity != null ? aimedEntity.getId() : -1;
         } else {

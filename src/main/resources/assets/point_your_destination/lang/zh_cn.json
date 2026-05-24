@@ -2,7 +2,7 @@
   "subtitles.point_your_destination.pin": "已放置路径点",
   "point_your_destination.waypoint.name": "目的地 %d",
   "point_your_destination.message.invalid_location": "无效的标记地点",
-  "key.categories.point_your_destination": "望远镜标记",
+  "key.categories.point_your_destination": "目之所及",
   "key.point_your_destination.mark_waypoint": "标记航点",
   "point_your_destination.zoom.level": "缩放：%.1f 倍",
   "key.point_your_destination.auto_zoom": "自动缩放",
